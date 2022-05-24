@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const app = express();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -18,6 +18,8 @@ async function run() {
         await client.connect();
 
         const toolsCollection = client.db('laptop-parts-village').collection('tools');
+        const reviewsCollection = client.db('laptop-parts-village').collection('reviews');
+        const summaryCollection = client.db('laptop-parts-village').collection('summary');
 
         app.get('/tools', async (req, res) => {
             const query = {};
@@ -25,6 +27,27 @@ async function run() {
             const tools = await cursor.toArray();
             res.send(tools);
         })
+
+        app.get('/reviews', async (req, res) => {
+            const query = {};
+            const cursor = reviewsCollection.find(query);
+            const reviews = await cursor.toArray();
+            res.send(reviews);
+        })
+
+        app.get('/summary', async (req, res) => {
+            const query = {};
+            const cursor = summaryCollection.find(query);
+            const summary = await cursor.toArray();
+            res.send(summary);
+        })
+
+        app.get('/tools/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const tool = await toolsCollection.findOne(query);
+            res.send(tool);
+        });
 
     }
     finally {
