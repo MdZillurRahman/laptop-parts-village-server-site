@@ -19,6 +19,7 @@ async function run() {
 
         const toolsCollection = client.db('laptop-parts-village').collection('tools');
         const reviewsCollection = client.db('laptop-parts-village').collection('reviews');
+        const purchaseCollection = client.db('laptop-parts-village').collection('purchase');
         const summaryCollection = client.db('laptop-parts-village').collection('summary');
 
         app.get('/tools', async (req, res) => {
@@ -48,6 +49,38 @@ async function run() {
             const tool = await toolsCollection.findOne(query);
             res.send(tool);
         });
+
+        app.get('/purchase', async (req, res) => {
+            const userEmail = req.query.userEmail;
+            console.log(userEmail);
+            const query = {userEmail: userEmail};
+            const purchased = await purchaseCollection.find(query).toArray();
+            res.send(purchased);
+            // console.log(purchased);
+        })
+
+
+        app.post('/purchase', async (req, res) => {
+            const purchase = req.body;
+            const result = await purchaseCollection.insertOne(purchase);
+            res.send(result);
+        })
+
+
+        app.patch('/tools/:id', async (req, res) => {
+            const id  = req.params.id;  
+            const availableQuantity = req.body.availableQuantity;
+            const newQuantity = req.body.newQuantity;          
+            
+            const updateQuantity = availableQuantity - newQuantity;
+            const query = { _id: ObjectId(id) };
+            const tools = await toolsCollection.findOneAndUpdate(query,
+                { $set: { "availableQuantity": updateQuantity } });
+            res.send(tools);
+            console.log(tools);
+        })
+
+        
 
     }
     finally {
