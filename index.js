@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const app = express();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -13,6 +14,23 @@ app.use(express.json());
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qapqu.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
+function verifyJWT(req, res, next) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).send({ message: 'UnAuthorized access' })
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_SECRET_TOKEN, function (err, decoded) {
+        if (err) {
+            console.log(err);
+            return res.status(403).send({ message: 'Forbidden access' })
+        }
+        req.decoded = decoded;
+        next();
+    });
+}
+
 async function run() {
     try {
         await client.connect();
@@ -21,6 +39,7 @@ async function run() {
         const reviewsCollection = client.db('laptop-parts-village').collection('reviews');
         const purchaseCollection = client.db('laptop-parts-village').collection('purchase');
         const summaryCollection = client.db('laptop-parts-village').collection('summary');
+        const usersCollection = client.db('laptop-parts-village').collection('users');
 
         app.get('/tools', async (req, res) => {
             const query = {};
@@ -50,13 +69,18 @@ async function run() {
             res.send(tool);
         });
 
-        app.get('/purchase', async (req, res) => {
+        app.get('/purchase', verifyJWT, async (req, res) => {
             const userEmail = req.query.userEmail;
-            console.log(userEmail);
-            const query = {userEmail: userEmail};
-            const purchased = await purchaseCollection.find(query).toArray();
-            res.send(purchased);
-            // console.log(purchased);
+            const decodedEmail = req.decoded.email;
+            if (userEmail === decodedEmail) {
+                const query = { userEmail: userEmail };
+                const purchased = await purchaseCollection.find(query).toArray();
+                return res.send(purchased);
+            }
+            else {
+                return res.status(403).send({ message: 'Forbidden Access' });
+            }
+
         })
 
 
@@ -68,10 +92,10 @@ async function run() {
 
 
         app.patch('/tools/:id', async (req, res) => {
-            const id  = req.params.id;  
+            const id = req.params.id;
             const availableQuantity = req.body.availableQuantity;
-            const newQuantity = req.body.newQuantity;          
-            
+            const newQuantity = req.body.newQuantity;
+
             const updateQuantity = availableQuantity - newQuantity;
             const query = { _id: ObjectId(id) };
             const tools = await toolsCollection.findOneAndUpdate(query,
@@ -80,7 +104,22 @@ async function run() {
             console.log(tools);
         })
 
-        
+        app.put('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            const token = jwt.sign({ email: email }, process.env.ACCESS_SECRET_TOKEN, {
+                expiresIn: '7d'
+            });
+            res.send({ result, token });
+        })
+
+
 
     }
     finally {
