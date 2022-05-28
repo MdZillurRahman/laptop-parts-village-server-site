@@ -183,11 +183,11 @@ async function run() {
             res.send(user);
         })
 
-        // app.post('/reviews', async (req, res) => {
-        //     const newItem = req.body;
-        //     const result = await reviewsCollection.insertOne(newItem);
-        //     res.send(result);
-        // });
+        app.post('/reviews', async (req, res) => {
+            const newItem = req.body;
+            const result = await reviewsCollection.insertOne(newItem);
+            res.send(result);
+        });
 
 
 
