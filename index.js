@@ -5,6 +5,8 @@ const app = express();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 
 app.use(cors());
 app.use(express.json());
@@ -41,6 +43,7 @@ async function run() {
         const summaryCollection = client.db('laptop-parts-village').collection('summary');
         const usersCollection = client.db('laptop-parts-village').collection('users');
         const userInfoCollection = client.db('laptop-parts-village').collection('userInfo');
+        const paymentCollection = client.db('laptop-parts-village').collection('payments');
 
         app.get('/tools', async (req, res) => {
             const query = {};
@@ -84,7 +87,13 @@ async function run() {
 
         })
 
-        app.get('/purchase/:id', verifyJWT, async(req, res) =>{
+        app.get('/purchase', verifyJWT, async (req, res) => {
+            const query = {};
+            const purchase = purchaseCollection.find(query).toArray();
+            res.send(purchase);
+        })
+
+        app.get('/purchase/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
             const booking = await purchaseCollection.findOne(query);
@@ -96,6 +105,21 @@ async function run() {
             const purchase = req.body;
             const result = await purchaseCollection.insertOne(purchase);
             res.send(result);
+        })
+
+        app.patch('/purchase/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const payment = req.body;
+            const query = { _id: ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    paid: true,
+                    transactionId: payment.transactionId
+                }
+            };
+            const updatePurchase = await purchaseCollection.updateOne(query, updatedDoc);
+            const result = await paymentCollection.insertOne(payment);
+            res.send(updatedDoc);
         })
 
 
@@ -198,10 +222,24 @@ async function run() {
 
         app.delete('/user/:email', async (req, res) => {
             const email = req.params.email;
-            const query = { email : email };
+            const query = { email: email };
             const result = await usersCollection.deleteOne(query);
             res.send(result);
         });
+
+
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card']
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
 
 
 
