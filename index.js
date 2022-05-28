@@ -84,6 +84,13 @@ async function run() {
 
         })
 
+        app.get('/purchase/:id', verifyJWT, async(req, res) =>{
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const booking = await purchaseCollection.findOne(query);
+            res.send(booking);
+        })
+
 
         app.post('/purchase', async (req, res) => {
             const purchase = req.body;
@@ -186,6 +193,13 @@ async function run() {
         app.post('/reviews', async (req, res) => {
             const newItem = req.body;
             const result = await reviewsCollection.insertOne(newItem);
+            res.send(result);
+        });
+
+        app.delete('/user/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { email : email };
+            const result = await usersCollection.deleteOne(query);
             res.send(result);
         });
 
