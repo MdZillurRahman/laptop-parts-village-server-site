@@ -165,23 +165,23 @@ async function run() {
             res.send(result);
         });
 
-        // app.put('/userInfo/:email', async (req, res) => {
-        //     const email = req.params.email;
-        //     const userInfo = req.body;
-        //     const filter = { email: email };
-        //     const options = { upsert: true };
-        //     const updateDoc = {
-        //         $set: userInfo,
-        //     };
-        //     const result = await userInfoCollection.updateOne(filter, updateDoc, options);
-        //     res.send(result);
-        // })
+        app.put('/userInfo/:email', async (req, res) => {
+            const email = req.params.email;
+            const userInfo = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: userInfo,
+            };
+            const result = await userInfoCollection.updateOne(filter, updateDoc, options);
+            res.send(result);
+        })
 
-        // app.get('/userInfo/:email', async (req, res) => {
-        //     const email = req.params.email;
-        //     const user = await userInfoCollection.findOne({ email: email });
-        //     res.send(user);
-        // })
+        app.get('/userInfo/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await userInfoCollection.findOne({ email: email });
+            res.send(user);
+        })
 
         // app.post('/reviews', async (req, res) => {
         //     const newItem = req.body;
