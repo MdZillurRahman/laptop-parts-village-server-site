@@ -87,7 +87,7 @@ async function run() {
 
         })
 
-        app.get('/purchase', verifyJWT, async (req, res) => {
+        app.get('/allPurchase', verifyJWT, async (req, res) => {
             const query = {};
             const purchase = purchaseCollection.find(query).toArray();
             res.send(purchase);
